@@ -1,0 +1,8 @@
+# vscode
+.vscode/
+
+# pycache
+__pycache__/
+
+# temporary file
+temp*.py

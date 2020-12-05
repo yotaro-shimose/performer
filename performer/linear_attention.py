@@ -11,7 +11,7 @@ class LinearAttention(tf.keras.layers.Layer):
     def _build_with_F(self, d_feature):
         F = d_feature
         M = self.n_omega
-        self.omega: tf.Variable = self.add_variable(
+        self.omega: tf.Variable = self.add_weight(
             shape=(M, F),
             trainable=False
         )
@@ -19,14 +19,25 @@ class LinearAttention(tf.keras.layers.Layer):
         self.omega.assign(self._draw_omega(d_feature))
 
     def _draw_omega(self, d_feature: int):
-        # TODO make sure n_omega can be greater than d_feature
-        # F, F
+        n_full_stack = self.n_omega // d_feature
+        remainder = self.n_omega - n_full_stack * d_feature
+        stack = tf.TensorArray(dtype=tf.float32, size=0,
+                               dynamic_size=True, infer_shape=False)
+        for i in tf.range(n_full_stack):
+            # F, F
+            random_features = tf.random.normal((d_feature, d_feature))
+            # F, F
+            q, _ = tf.linalg.qr(random_features)
+            q = q * tf.sqrt(float(d_feature))
+            stack.write(i, q)
+
         random_features = tf.random.normal((d_feature, d_feature))
         # F, F
         q, _ = tf.linalg.qr(random_features)
         q = q * tf.sqrt(float(d_feature))
+        stack.write(n_full_stack, q[:remainder])
         # M, F
-        return q[:self.n_omega]
+        return stack.concat()
 
     def _phi(self, x: tf.Tensor):
         """

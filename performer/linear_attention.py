@@ -110,24 +110,28 @@ class MultiHeadLinearAttention(tf.keras.layers.Layer):
         d_key_per_head = int(self.d_key / self.n_heads)
         d_value_per_head = int(self.d_value / self.n_heads)
         self.wq = self.add_weight(
+            name="wq",
             shape=(self.n_heads, d_query, d_key_per_head),
             initializer="glorot_uniform",
             dtype=tf.float32,
             trainable=True,
         )
         self.wv = self.add_weight(
+            name="wv",
             shape=(self.n_heads, d_value, d_value_per_head),
             initializer="glorot_uniform",
             dtype=tf.float32,
             trainable=True,
         )
         self.wk = self.add_weight(
+            name="wk",
             shape=(self.n_heads, d_key, d_key_per_head),
             initializer="glorot_uniform",
             dtype=tf.float32,
             trainable=True,
         )
         self.omega: tf.Variable = self.add_weight(
+            name="omega",
             shape=(self.n_omega, d_key_per_head),
             trainable=False
         )

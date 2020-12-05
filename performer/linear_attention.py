@@ -29,15 +29,17 @@ class LinearAttention(tf.keras.layers.Layer):
             # F, F
             q, _ = tf.linalg.qr(random_features)
             q = q * tf.sqrt(float(d_feature))
-            stack.write(i, q)
+            stack = stack.write(i, q)
 
         random_features = tf.random.normal((d_feature, d_feature))
         # F, F
         q, _ = tf.linalg.qr(random_features)
         q = q * tf.sqrt(float(d_feature))
-        stack.write(n_full_stack, q[:remainder])
+        stack: tf.TensorArray = stack.write(n_full_stack, q[:remainder])
         # M, F
-        return stack.concat()
+        kernel = stack.concat()
+        stack.close()
+        return kernel
 
     def _phi(self, x: tf.Tensor):
         """
@@ -75,18 +77,18 @@ class LinearAttention(tf.keras.layers.Layer):
         # B, S, M
         key = self._phi(key)
 
-        # ones_shape = value.shape
-        # ones_shape[-1] = 1
-        # # B, S, D + 1
-        # value = tf.concat(
-        #     [value, tf.ones(ones_shape, dtype=tf.float32)], axis=-1)
-        # # B, M, D + 1
-        # keyvalue = tf.einsum("...ki,...kj->ij", key, value)
-        # # B, T, D + 1
-        # qkv = tf.einsum("...ik,...kj->ij", query, keyvalue)
-        # # B, T, 1
-        # normalizer = tf.expand_dims(qkv[:, :, -1], -1)
-        # # B, T, D
-        # qkv = qkv[:, :, :-1]
+        ones_shape = value.shape[:-1] + [1, ]
 
-        # return qkv / normalizer
+        # B, S, D + 1
+        value = tf.concat(
+            [value, tf.ones(ones_shape, dtype=tf.float32)], axis=-1)
+        # B, M, D + 1
+        keyvalue = tf.einsum("...ki,...kj->...ij", key, value)
+        # B, T, D + 1
+        qkv = tf.einsum("...ik,...kj->...ij", query, keyvalue)
+        # B, T, 1
+        normalizer = tf.expand_dims(qkv[:, :, -1], -1)
+        # B, T, D
+        qkv = qkv[:, :, :-1]
+
+        return qkv / normalizer
